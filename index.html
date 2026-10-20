@@ -5,15 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>ロープレスキュー力学シミュレーター Pro</title>
 
-  <!-- スマホ全画面アプリ化メタタグ -->
+  <!-- PWA設定 -->
+  <link rel="manifest" href="./manifest.json">
   <meta name="theme-color" content="#0f172a">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="レスキュー力学">
+  <link rel="apple-touch-icon" href="./icon.png">
 
   <style>
     :root {
-      --bg-base: #f1f5f9;
+      --bg-base: #f8fafc;
       --bg-surface: #ffffff;
       --bg-card: #ffffff;
       --border: #cbd5e1;
@@ -29,15 +31,7 @@
       --danger-bg: #fef2f2; --danger-border: #ef4444; --danger-text: #b91c1c;
       --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
     }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      user-select: none;
-      -webkit-user-select: none;
-    }
-
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
     body {
       background-color: var(--bg-base);
       color: var(--text-main);
@@ -48,8 +42,6 @@
       flex-direction: column;
       overflow: hidden;
     }
-
-    /* ヘッダー */
     header {
       height: 44px;
       background: var(--bg-surface);
@@ -61,16 +53,1010 @@
       flex-shrink: 0;
       z-index: 10;
     }
-    .brand-wrap {
-      display: flex;
-      align-items: center;
-      gap: 8px;
+    .brand-wrap { display: flex; align-items: center; gap: 8px; }
+    .brand-title { font-weight: 900; font-size: 13.5px; color: var(--text-main); }
+    .unit-switch-btn {
+      background: #f1f5f9; border: 1.5px solid var(--border-dark);
+      padding: 4px 9px; border-radius: 6px; font-size: 11px; font-weight: 900; cursor: pointer;
     }
-    .pixel-logo {
-      width: 22px;
-      height: 22px;
-      flex-shrink: 0;
+    .mode-tab-bar {
+      display: flex; background: var(--bg-surface); border-bottom: 1px solid var(--border);
+      padding: 5px 8px; gap: 4px; flex-shrink: 0; overflow-x: auto;
     }
-    .brand-title {
-      font-weight: 900;
-      font-size: 13.5px;
+    .mode-tab-btn {
+      flex: 1; min-width: 65px; padding: 7px 0; font-size: 11px; font-weight: 800;
+      border: 1px solid var(--border); background: #f8fafc; color: var(--text-sub);
+      border-radius: 6px; cursor: pointer; text-align: center; white-space: nowrap;
+    }
+    .mode-tab-btn.active { background: #0f172a; color: #ffffff !important; border-color: #0f172a; }
+
+    /* レスポンシブ配置（PCでは2カラム、スマホでは縦並び） */
+    .app-body {
+      flex: 1; display: flex; flex-direction: column; overflow: hidden;
+    }
+    @media (min-width: 768px) {
+      .app-body {
+        flex-direction: row; max-width: 1300px; margin: 0 auto; width: 100%;
+        border-left: 1px solid var(--border); border-right: 1px solid var(--border);
+      }
+      .pane-left { flex: 1.1; max-width: 440px; border-right: 2px solid var(--border); height: 100%; }
+      .pane-right { flex: 1.5; height: 100%; display: flex; flex-direction: column; }
+      .preview-area { flex: 1 !important; }
+    }
+
+    .top-metrics-area {
+      background: var(--bg-surface); padding: 6px 10px; border-bottom: 1px solid var(--border);
+      display: flex; flex-direction: column; gap: 5px; flex-shrink: 0;
+    }
+    .metrics-header { display: flex; align-items: center; justify-content: space-between; }
+    .metrics-title { font-size: 10.5px; font-weight: 900; color: var(--text-sub); }
+    .safety-badge { font-size: 9.5px; font-weight: 900; padding: 2px 7px; border-radius: 4px; }
+    .metrics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+    .metric-card {
+      background: #f8fafc; border: 1.5px solid var(--border); border-radius: 6px;
+      padding: 5px 3px; text-align: center;
+    }
+    .metric-lbl { font-size: 9px; font-weight: 800; color: var(--text-muted); margin-bottom: 2px; }
+    .metric-val { font-size: 14px; font-weight: 900; color: var(--text-main); font-family: monospace; }
+    .metric-sub { font-size: 8.5px; font-weight: 700; color: var(--text-muted); }
+
+    .preview-area {
+      flex: 1.1; min-height: 200px; background: #ffffff; border-bottom: 2px solid var(--border);
+      position: relative; display: flex;
+    }
+    svg.canvas { width: 100%; height: 100%; display: block; }
+
+    .controls-area {
+      flex: 1.35; background: var(--bg-base); overflow-y: auto;
+      padding: 8px 10px 24px; display: flex; flex-direction: column; gap: 7px;
+    }
+    .slider-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 7px; padding: 7px 10px; display: flex; flex-direction: column; gap: 4px;
+    }
+    .slider-top-row { display: flex; justify-content: space-between; align-items: center; }
+    .slider-name { font-size: 11px; font-weight: 800; color: var(--text-main); }
+    .slider-tag { font-family: monospace; font-size: 12px; font-weight: 900; color: #0284c7; }
+    input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 6px; background: #e2e8f0; border-radius: 3px; outline: none; margin: 4px 0; }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none; appearance: none; width: 22px; height: 22px; border-radius: 50%;
+      background: #0f172a; cursor: pointer; border: 2.5px solid #ffffff; box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+    }
+    .sys-selector-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+    .sys-btn {
+      background: var(--bg-card); border: 1.5px solid var(--border); color: var(--text-main);
+      padding: 6px 1px; border-radius: 6px; font-size: 10.5px; font-weight: 800; cursor: pointer; text-align: center;
+    }
+    .sys-btn.active { background: #0f172a; color: #ffffff; border-color: #0f172a; }
+    .sys-btn small { font-size: 8px; color: var(--text-muted); }
+    .sys-btn.active small { color: #94a3b8; }
+    .param-group { display: flex; flex-direction: column; gap: 2px; }
+    .param-title { font-size: 10px; font-weight: 800; color: var(--text-sub); }
+    .btn-row-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+    .btn-row-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+    .param-btn {
+      background: var(--bg-card); border: 1px solid var(--border); color: var(--text-sub);
+      font-size: 9.5px; padding: 6px 1px; border-radius: 5px; cursor: pointer; text-align: center; font-weight: 800;
+    }
+    .param-btn.active { background: #eff6ff; color: #1d4ed8; border-color: #3b82f6; font-weight: 900; }
+    .angle-preset-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+    .angle-btn {
+      background: var(--bg-card); border: 1px solid var(--border); color: var(--text-sub);
+      font-size: 9.5px; padding: 5px 1px; border-radius: 5px; cursor: pointer; text-align: center; font-weight: 800;
+    }
+    .angle-btn.active { background: #0f172a; color: #ffffff; border-color: #0f172a; font-weight: 900; }
+    .summary-strip { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; background: #e2e8f0; border-radius: 6px; padding: 4px; }
+    .summary-box { background: var(--bg-card); border-radius: 4px; padding: 4px 2px; text-align: center; }
+    .summary-box-label { font-size: 8.5px; font-weight: 800; color: var(--text-muted); }
+    .summary-box-val { font-size: 11px; font-weight: 900; color: var(--text-main); }
+    .info-card { font-size: 9.5px; color: var(--text-muted); line-height: 1.4; padding: 6px 8px; background: #ffffff; border: 1px solid var(--border); border-radius: 6px; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand-wrap">
+      <span class="brand-title">レスキュー力学シミュレーター Pro</span>
+    </div>
+    <button class="unit-switch-btn" id="btnToggleUnit">
+      <span>単位:</span> <span id="activeUnitLabel" style="color:#0284c7;">kN</span> <span>⇄</span>
+    </button>
+  </header>
+
+  <nav class="mode-tab-bar">
+    <button class="mode-tab-btn active" id="tabMain">斜面・倍力</button>
+    <button class="mode-tab-btn" id="tabVector">方向転換</button>
+    <button class="mode-tab-btn" id="tabHighline">ハイライン</button>
+    <button class="mode-tab-btn" id="tabYHang">Yハング</button>
+    <button class="mode-tab-btn" id="tabImpact" style="color:#dc2626;">衝撃荷重</button>
+  </nav>
+
+  <div class="app-body">
+    <!-- 右側ペイン（スマホでは上側に表示） -->
+    <div class="pane-right" style="order: 1;">
+      <section class="top-metrics-area">
+        <div class="metrics-header">
+          <span class="metrics-title" id="metricsHeaderTitle">主要荷重・張力リアルタイム解析</span>
+          <span class="safety-badge" id="globalSafetyBadge">通常 (安全域)</span>
+        </div>
+        <div class="metrics-grid">
+          <div class="metric-card" id="mCard1">
+            <span class="metric-lbl" id="mLbl1">主アンカー荷重</span>
+            <span class="metric-val" id="mVal1">0.00 kN</span>
+            <span class="metric-sub" id="mSub1">(0 kgf)</span>
+          </div>
+          <div class="metric-card" id="mCard2">
+            <span class="metric-lbl" id="mLbl2">手元引手荷重 (HAUL)</span>
+            <span class="metric-val" id="mVal2">0.00 kN</span>
+            <span class="metric-sub" id="mSub2">(0 kgf)</span>
+          </div>
+          <div class="metric-card" id="mCard3">
+            <span class="metric-lbl" id="mLbl3">斜面・有効張力</span>
+            <span class="metric-val" id="mVal3">0.00 kN</span>
+            <span class="metric-sub" id="mSub3">(0 kgf)</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="preview-area">
+        <svg id="mainCanvas" class="canvas" viewBox="0 0 400 240"></svg>
+      </section>
+    </div>
+
+    <!-- 左側ペイン（スマホでは下側に表示） -->
+    <div class="pane-left" style="order: 2;">
+      <section class="controls-area">
+        <!-- 1. 斜面・倍力 -->
+        <div id="panelMain" style="display:flex; flex-direction:column; gap:6px;">
+          <div class="sys-selector-grid">
+            <button class="sys-btn" data-sys="1:1-direct"><span>1:1</span><small>直接</small></button>
+            <button class="sys-btn" data-sys="1:1-redirect"><span>1:1</span><small>0°折返</small></button>
+            <button class="sys-btn" data-sys="2:1"><span>2:1</span><small>動滑車</small></button>
+            <button class="sys-btn active" data-sys="3:1"><span>3:1</span><small>Z-Rig</small></button>
+            <button class="sys-btn" data-sys="5:1"><span>5:1</span><small>複滑車</small></button>
+          </div>
+          <div class="slider-card">
+            <div class="slider-top-row"><span class="slider-name">総荷重 (要救助者＋担架)</span><span class="slider-tag" id="dispMainLoad">2.0 kN (204 kgf)</span></div>
+            <input type="range" id="sliderMainLoad" min="0.5" max="4.0" step="0.1" value="2.0">
+          </div>
+          <div class="slider-card">
+            <div class="slider-top-row"><span class="slider-name">斜面傾斜角 (Slope Angle)</span><span class="slider-tag" id="dispMainSlope">45°</span></div>
+            <input type="range" id="sliderMainSlope" min="0" max="90" step="5" value="45">
+          </div>
+          <div class="param-group">
+            <span class="param-title">路面・搬送状態（摩擦抵抗 μ）</span>
+            <div class="btn-row-4" id="groupFriction">
+              <button class="param-btn" data-val="0.00">なし/空中<br>(μ=0.00)</button>
+              <button class="param-btn" data-val="0.05">スキッド<br>(μ=0.05)</button>
+              <button class="param-btn active" data-val="0.15">土砂/草地<br>(μ=0.15)</button>
+              <button class="param-btn" data-val="0.30">岩肌/舗装<br>(μ=0.30)</button>
+            </div>
+          </div>
+          <div class="param-group">
+            <span class="param-title">滑車軸受効率（摩擦損失）</span>
+            <div class="btn-row-4" id="groupEfficiency">
+              <button class="param-btn" data-val="1.00">理論値<br>(100%)</button>
+              <button class="param-btn active" data-val="0.91">ベアリング<br>(91%)</button>
+              <button class="param-btn" data-val="0.75">ブッシング<br>(75%)</button>
+              <button class="param-btn" data-val="0.50">カラビナ<br>(50%)</button>
+            </div>
+          </div>
+          <div class="summary-strip">
+            <div class="summary-box"><div class="summary-box-label">理論 TMA</div><div class="summary-box-val" id="dispMainTma">3 : 1</div></div>
+            <div class="summary-box"><div class="summary-box-label">実効 AMA</div><div class="summary-box-val" id="dispMainAma">2.54 : 1</div></div>
+            <div class="summary-box"><div class="summary-box-label">引手目安 (22kgf)</div><div class="summary-box-val" id="dispMainHaulers" style="color:var(--accent-green);">約 3 名</div></div>
+          </div>
+        </div>
+
+        <!-- 2. 方向転換（自動ズーム・見切れ防止） -->
+        <div id="panelVector" style="display:none; flex-direction:column; gap:6px;">
+          <div class="slider-card">
+            <div class="slider-top-row"><span class="slider-name">通過索張力 (Line Tension T)</span><span class="slider-tag" id="dispVecTension">1.0 kN (102 kgf)</span></div>
+            <input type="range" id="sliderVecTension" min="0.5" max="4.0" step="0.1" value="1.0">
+          </div>
+          <div class="slider-card">
+            <div class="slider-top-row"><span class="slider-name">偏向角 (Included Angle θ)</span><span class="slider-tag" id="dispVecAngle">90° (合力 141%)</span></div>
+            <input type="range" id="sliderVecAngle" min="0" max="180" step="1" value="90">
+          </div>
+          <div class="param-group">
+            <span class="param-title">代表偏向角度プリセット (el efecto polea 準拠)</span>
+            <div class="angle-preset-grid" style="margin-bottom:4px;">
+              <button class="angle-btn" data-angle="0">0°<br><small>200%</small></button>
+              <button class="angle-btn" data-angle="20">20°<br><small>197%</small></button>
+              <button class="angle-btn" data-angle="45">45°<br><small>185%</small></button>
+              <button class="angle-btn" data-angle="60">60°<br><small>173%</small></button>
+              <button class="angle-btn" data-angle="75">75°<br><small>160%</small></button>
+            </div>
+            <div class="angle-preset-grid">
+              <button class="angle-btn active" data-angle="90">90°<br><small>141%</small></button>
+              <button class="angle-btn" data-angle="120">120°<br><small>100%</small></button>
+              <button class="angle-btn" data-angle="145">145°<br><small>70%</small></button>
+              <button class="angle-btn" data-angle="160">160°<br><small>34%</small></button>
+              <button class="angle-btn" data-angle="180">180°<br><small>0%</small></button>
+            </div>
+          </div>
+          <div class="info-card">
+            <strong>【オートフレーミング機能搭載】</strong><br>
+            角度の変化に合わせてカメラ画角（viewBox）が自動ズーム調整され、0°の超長合力矢印（200%）でも画面端の見切れが完全に防止されます。
+          </div>
+        </div>
+
+        <!-- 3. ハイライン -->
+        <div id="panelHighline" style="display:none; flex-direction:column; gap:6px;">
+          <div class="slider-card">
+            <div class="slider-top-row"><span class="slider-name">吊り下げ荷重 (Load W)</span><span class="slider-tag" id="dispHlLoad">2.0 kN (204 kgf)</span></div>
+            <input type="range" id="sliderHlLoad" min="0.5" max="4.0" step="0.1" value="2.0">
+          </div>
+          <div class="slider-card">
+            <div class="slider-top-row"><span class="slider-name">スパン水平長 (Span L)</span><span class="slider-tag" id="dispHlSpan">40 m</span></div>
+            <input type="range" id="sliderHlSpan" min="10" max="100" step="5" value="40">
+          </div>
+          <div class="slider-card">
+            <div class="slider-top-row"><span class="slider-name">目標サグ量 (Sag S: 鉛直落差)</span><span class="slider-tag" id="dispHlSag">4 m (サグ率 10.0%)</span></div>
+            <input type="range" id="sliderHlSag" min="1" max="15" step="1" value="4">
+          </div>
+          <div class="slider-card">
+            <div class="slider-top-row"><span class="slider-name">ハイライン傾斜角 (0°〜90°)</span><span class="slider-tag" id="dispHlSlope">0° (水平)</span></div>
+            <input type="range" id="sliderHlSlope" min="0" max="90" step="1" value="0">
+          </div>
+          <div class="summary-strip">
+            <div class="summary-box"><div class="summary-box-label">支点A 迎角 α</div><div class="summary-box-val" id="dispHlAngleA">11.3°</div></div>
+            <div class="summary-box"><div class="summary-box-label">支点B 迎角 β</div><div class="summary-box-val" id="dispHlAngleB">11.3°</div></div>
+            <div class="summary-box"><div class="summary-box-label">荷直下 挟み角 2θ</div><div class="summary-box-val" id="dispHlIncludedAngle" style="color:var(--accent-orange);">157.4°</div></div>
+          </div>
+        </div>
+
+        <!-- 4. Yハング（2/3/4支点切替対応） -->
+        <div id="panelYHang" style="display:none; flex-direction:column; gap:6px;">
+          <div class="param-group">
+            <span class="param-title">アンカー支点構成（多点分散）</span>
+            <div class="btn-row-3" id="groupYPoints">
+              <button class="param-btn active" data-pts="2">2点 (Yハング)</button>
+              <button class="param-btn" data-pts="3">3点均等分散</button>
+              <button class="param-btn" data-pts="4">4点均等分散</button>
+            </div>
+          </div>
+          <div class="slider-card">
+            <div class="slider-top-row"><span class="slider-name">吊り下げ総荷重 (Total Load W)</span><span class="slider-tag" id="dispYLoad">2.0 kN (204 kgf)</span></div>
+            <input type="range" id="sliderYLoad" min="0.5" max="4.0" step="0.1" value="2.0">
+          </div>
+          <div class="slider-card">
+            <div class="slider-top-row"><span class="slider-name">最外角 挟み角 (Total Angle θ)</span><span class="slider-tag" id="dispYAngle">60°</span></div>
+            <input type="range" id="sliderYAngle" min="10" max="160" step="5" value="60">
+          </div>
+          <div class="info-card">
+            <strong>【プレビュー内リアルタイム荷重タグ】</strong><br>
+            プレビュー図内の各支点（A, B, C, D）の直下に、均等分散された荷重（kN）と負担率（%）がリアルタイムに表示されます。
+          </div>
+        </div>
+
+        <!-- 5. 衝撃荷重（FF比較・2列表示） -->
+        <div id="panelImpact" style="display:none; flex-direction:column; gap:6px;">
+          <div class="param-group">
+            <span class="param-title">フォールファクター (FF) クイックプリセット</span>
+            <div class="btn-row-3" id="groupFfPresets">
+              <button class="param-btn" data-ff="0.5">FF 0.5<br><small>頭上支点 (軽微)</small></button>
+              <button class="param-btn" data-ff="1.0">FF 1.0<br><small>腰高支点 (限界)</small></button>
+              <button class="param-btn active" data-ff="2.0">FF 2.0<br><small>足元支点 (危険)</small></button>
+            </div>
+          </div>
+          <div class="slider-card">
+            <div class="slider-top-row"><span class="slider-name">落下質量 (救助者＋装備)</span><span class="slider-tag" id="dispImpMass">100 kg (0.98 kN)</span></div>
+            <input type="range" id="sliderImpMass" min="50" max="250" step="5" value="100">
+          </div>
+          <div class="slider-card">
+            <div class="slider-top-row"><span class="slider-name">自由落下距離 (Fall Distance h)</span><span class="slider-tag" id="dispImpFallDist">2.0 m</span></div>
+            <input type="range" id="sliderImpFallDist" min="0.1" max="5.0" step="0.1" value="2.0">
+          </div>
+          <div class="slider-card">
+            <div class="slider-top-row"><span class="slider-name">実効ロープ長 (Rope Length L)</span><span class="slider-tag" id="dispImpRopeLen">1.0 m</span></div>
+            <input type="range" id="sliderImpRopeLen" min="0.5" max="10.0" step="0.5" value="1.0">
+          </div>
+          <div class="param-group">
+            <span class="param-title">使用索体剛性特性</span>
+            <div class="btn-row-3" id="groupRopeType">
+              <button class="param-btn active" data-modulus="25">セミスタティック<br>(EA=25kN)</button>
+              <button class="param-btn" data-modulus="12">ダイナミック<br>(EA=12kN)</button>
+              <button class="param-btn" data-modulus="70">スリング剛体<br>(EA=70kN)</button>
+            </div>
+          </div>
+          <div class="param-group">
+            <span class="param-title">ショックアブソーバー (エネルギー吸収器)</span>
+            <div class="btn-row-3" id="groupAbsorber">
+              <button class="param-btn active" data-abs="none">なし<br>(ダイレクト)</button>
+              <button class="param-btn" data-abs="en355">EN355規格<br>(最大6kN制限)</button>
+              <button class="param-btn" data-abs="asap">ASAP減衰<br>(約4.8kN制限)</button>
+            </div>
+          </div>
+          <div class="summary-strip">
+            <div class="summary-box"><div class="summary-box-label">落下係数 (FF)</div><div class="summary-box-val" id="dispImpFF" style="color:#dc2626;">2.00</div></div>
+            <div class="summary-box"><div class="summary-box-label">ロープ伸び量</div><div class="summary-box-val" id="dispImpElong">約 0.44 m</div></div>
+            <div class="summary-box"><div class="summary-box-label">人体減速度 (G)</div><div class="summary-box-val" id="dispImpG" style="color:var(--accent-orange);">約 11.2 G</div></div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    // キャッシュトラブル自動解消（古いServiceWorkerのクリーンアップ）
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(registrations => {
+        for (let registration of registrations) { registration.unregister(); }
+      }).catch(() => {});
+    }
+
+    let currentTab = 'main';
+    let unitMode = 'kN';
+
+    const state = {
+      // 1. 斜面
+      sys: '3:1', mainLoadKn: 2.0, slopeDeg: 45, friction: 0.15, efficiency: 0.91,
+      // 2. 方向転換
+      vecTensionKn: 1.0, vecAngleDeg: 90,
+      // 3. ハイライン
+      hlLoadKn: 2.0, hlSpanM: 40, hlSagM: 4, hlSlopeDeg: 0,
+      // 4. Yハング
+      yPoints: 2, yLoadKn: 2.0, yAngleDeg: 60,
+      // 5. 衝撃荷重
+      impMassKg: 100, impFallDistM: 2.0, impRopeLenM: 1.0, impModulusKn: 25, impAbsorber: 'none'
+    };
+
+    const el = {
+      btnToggleUnit: document.getElementById('btnToggleUnit'),
+      activeUnitLabel: document.getElementById('activeUnitLabel'),
+      tabs: {
+        main: document.getElementById('tabMain'),
+        vector: document.getElementById('tabVector'),
+        highline: document.getElementById('tabHighline'),
+        yhang: document.getElementById('tabYHang'),
+        impact: document.getElementById('tabImpact')
+      },
+      panels: {
+        main: document.getElementById('panelMain'),
+        vector: document.getElementById('panelVector'),
+        highline: document.getElementById('panelHighline'),
+        yhang: document.getElementById('panelYHang'),
+        impact: document.getElementById('panelImpact')
+      },
+      metricsHeaderTitle: document.getElementById('metricsHeaderTitle'),
+      globalSafetyBadge: document.getElementById('globalSafetyBadge'),
+      mCard1: document.getElementById('mCard1'), mLbl1: document.getElementById('mLbl1'), mVal1: document.getElementById('mVal1'), mSub1: document.getElementById('mSub1'),
+      mCard2: document.getElementById('mCard2'), mLbl2: document.getElementById('mLbl2'), mVal2: document.getElementById('mVal2'), mSub2: document.getElementById('mSub2'),
+      mCard3: document.getElementById('mCard3'), mLbl3: document.getElementById('mLbl3'), mVal3: document.getElementById('mVal3'), mSub3: document.getElementById('mSub3'),
+      sliderMainLoad: document.getElementById('sliderMainLoad'), sliderMainSlope: document.getElementById('sliderMainSlope'),
+      sliderVecTension: document.getElementById('sliderVecTension'), sliderVecAngle: document.getElementById('sliderVecAngle'),
+      sliderHlLoad: document.getElementById('sliderHlLoad'), sliderHlSpan: document.getElementById('sliderHlSpan'), sliderHlSag: document.getElementById('sliderHlSag'), sliderHlSlope: document.getElementById('sliderHlSlope'),
+      sliderYLoad: document.getElementById('sliderYLoad'), sliderYAngle: document.getElementById('sliderYAngle'),
+      sliderImpMass: document.getElementById('sliderImpMass'), sliderImpFallDist: document.getElementById('sliderImpFallDist'), sliderImpRopeLen: document.getElementById('sliderImpRopeLen'),
+      dispMainLoad: document.getElementById('dispMainLoad'), dispMainSlope: document.getElementById('dispMainSlope'), dispMainTma: document.getElementById('dispMainTma'), dispMainAma: document.getElementById('dispMainAma'), dispMainHaulers: document.getElementById('dispMainHaulers'),
+      dispVecTension: document.getElementById('dispVecTension'), dispVecAngle: document.getElementById('dispVecAngle'),
+      dispHlLoad: document.getElementById('dispHlLoad'), dispHlSpan: document.getElementById('dispHlSpan'), dispHlSag: document.getElementById('dispHlSag'), dispHlSlope: document.getElementById('dispHlSlope'),
+      dispHlAngleA: document.getElementById('dispHlAngleA'), dispHlAngleB: document.getElementById('dispHlAngleB'), dispHlIncludedAngle: document.getElementById('dispHlIncludedAngle'),
+      dispYLoad: document.getElementById('dispYLoad'), dispYAngle: document.getElementById('dispYAngle'),
+      dispImpMass: document.getElementById('dispImpMass'), dispImpFallDist: document.getElementById('dispImpFallDist'), dispImpRopeLen: document.getElementById('dispImpRopeLen'), dispImpFF: document.getElementById('dispImpFF'), dispImpElong: document.getElementById('dispImpElong'), dispImpG: document.getElementById('dispImpG'),
+      canvas: document.getElementById('mainCanvas')
+    };
+
+    function fmtVal(valKn, decimals = 2) {
+      const kgf = Math.round(valKn * 101.97);
+      return unitMode === 'kN' ? { main: `${valKn.toFixed(decimals)} kN`, sub: `(${kgf} kgf)` } : { main: `${kgf} kgf`, sub: `(${valKn.toFixed(decimals)} kN)` };
+    }
+
+    function setSafety(level, text, cardHighlight = 1) {
+      const b = el.globalSafetyBadge;
+      [el.mCard1, el.mCard2, el.mCard3].forEach(c => { c.style.background = '#f8fafc'; c.style.borderColor = 'var(--border)'; });
+      if (level === 'safe') {
+        b.innerText = text || '通常 (安全域)'; b.style.background = 'var(--safe-bg)'; b.style.color = 'var(--safe-text)'; b.style.border = '1px solid var(--safe-border)';
+        el.mCard1.style.background = '#eff6ff'; el.mCard1.style.borderColor = '#93c5fd';
+      } else if (level === 'warn') {
+        b.innerText = text || '注意 (高負荷)'; b.style.background = 'var(--warn-bg)'; b.style.color = 'var(--warn-text)'; b.style.border = '1px solid var(--warn-border)';
+        const target = cardHighlight === 2 ? el.mCard2 : (cardHighlight === 3 ? el.mCard3 : el.mCard1);
+        target.style.background = 'var(--warn-bg)'; target.style.borderColor = 'var(--warn-border)';
+      } else {
+        b.innerText = text || '危険 (過大荷重)'; b.style.background = 'var(--danger-bg)'; b.style.color = 'var(--danger-text)'; b.style.border = '1px solid var(--danger-border)';
+        const target = cardHighlight === 2 ? el.mCard2 : (cardHighlight === 3 ? el.mCard3 : el.mCard1);
+        target.style.background = 'var(--danger-bg)'; target.style.borderColor = 'var(--danger-border)';
+      }
+    }
+
+    function initEvents() {
+      el.btnToggleUnit.addEventListener('click', () => {
+        unitMode = (unitMode === 'kN') ? 'kgf' : 'kN';
+        el.activeUnitLabel.innerText = unitMode;
+        render();
+      });
+
+      Object.keys(el.tabs).forEach(tab => {
+        el.tabs[tab].addEventListener('click', () => {
+          currentTab = tab;
+          Object.keys(el.tabs).forEach(t => {
+            el.tabs[t].classList.toggle('active', t === tab);
+            el.panels[t].style.display = (t === tab) ? 'flex' : 'none';
+          });
+          render();
+        });
+      });
+
+      el.sliderMainLoad.addEventListener('input', (e) => { state.mainLoadKn = parseFloat(e.target.value); render(); });
+      el.sliderMainSlope.addEventListener('input', (e) => { state.slopeDeg = parseInt(e.target.value); render(); });
+      el.sliderVecTension.addEventListener('input', (e) => { state.vecTensionKn = parseFloat(e.target.value); render(); });
+      el.sliderVecAngle.addEventListener('input', (e) => { state.vecAngleDeg = parseInt(e.target.value); updateVecPresetButtons(state.vecAngleDeg); render(); });
+      el.sliderHlLoad.addEventListener('input', (e) => { state.hlLoadKn = parseFloat(e.target.value); render(); });
+      el.sliderHlSpan.addEventListener('input', (e) => { state.hlSpanM = parseInt(e.target.value); render(); });
+      el.sliderHlSag.addEventListener('input', (e) => { state.hlSagM = parseInt(e.target.value); render(); });
+      el.sliderHlSlope.addEventListener('input', (e) => { state.hlSlopeDeg = parseInt(e.target.value); render(); });
+      el.sliderYLoad.addEventListener('input', (e) => { state.yLoadKn = parseFloat(e.target.value); render(); });
+      el.sliderYAngle.addEventListener('input', (e) => { state.yAngleDeg = parseInt(e.target.value); render(); });
+      el.sliderImpMass.addEventListener('input', (e) => { state.impMassKg = parseInt(e.target.value); render(); });
+      el.sliderImpFallDist.addEventListener('input', (e) => { state.impFallDistM = parseFloat(e.target.value); render(); });
+      el.sliderImpRopeLen.addEventListener('input', (e) => { state.impRopeLenM = parseFloat(e.target.value); render(); });
+
+      document.querySelectorAll('.sys-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.sys-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active'); state.sys = btn.getAttribute('data-sys'); render();
+        });
+      });
+      document.querySelectorAll('#groupFriction .param-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('#groupFriction .param-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active'); state.friction = parseFloat(btn.getAttribute('data-val')); render();
+        });
+      });
+      document.querySelectorAll('#groupEfficiency .param-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('#groupEfficiency .param-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active'); state.efficiency = parseFloat(btn.getAttribute('data-val')); render();
+        });
+      });
+      document.querySelectorAll('.angle-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const ang = parseInt(btn.getAttribute('data-angle'));
+          state.vecAngleDeg = ang; el.sliderVecAngle.value = ang; updateVecPresetButtons(ang); render();
+        });
+      });
+      document.querySelectorAll('#groupYPoints .param-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('#groupYPoints .param-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active'); state.yPoints = parseInt(btn.getAttribute('data-pts')); render();
+        });
+      });
+      document.querySelectorAll('#groupFfPresets .param-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('#groupFfPresets .param-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          const ff = parseFloat(btn.getAttribute('data-ff'));
+          if (ff === 0.5) { state.impFallDistM = 1.0; state.impRopeLenM = 2.0; }
+          else if (ff === 1.0) { state.impFallDistM = 2.0; state.impRopeLenM = 2.0; }
+          else if (ff === 2.0) { state.impFallDistM = 2.0; state.impRopeLenM = 1.0; }
+          el.sliderImpFallDist.value = state.impFallDistM;
+          el.sliderImpRopeLen.value = state.impRopeLenM;
+          render();
+        });
+      });
+      document.querySelectorAll('#groupRopeType .param-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('#groupRopeType .param-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active'); state.impModulusKn = parseFloat(btn.getAttribute('data-modulus')); render();
+        });
+      });
+      document.querySelectorAll('#groupAbsorber .param-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('#groupAbsorber .param-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active'); state.impAbsorber = btn.getAttribute('data-abs'); render();
+        });
+      });
+    }
+
+    function updateVecPresetButtons(targetAngle) {
+      document.querySelectorAll('.angle-btn').forEach(btn => {
+        btn.classList.toggle('active', parseInt(btn.getAttribute('data-angle')) === targetAngle);
+      });
+    }
+
+    function render() {
+      if (currentTab === 'main') renderMain();
+      else if (currentTab === 'vector') renderVector();
+      else if (currentTab === 'highline') renderHighline();
+      else if (currentTab === 'yhang') renderYHang();
+      else if (currentTab === 'impact') renderImpact();
+    }
+
+    // ─── 1. 斜面・倍力 ───
+    function renderMain() {
+      el.canvas.setAttribute('viewBox', '0 0 400 240');
+      el.metricsHeaderTitle.innerText = '斜面・倍力システム 力学サマリー';
+      el.mLbl1.innerText = '主アンカー荷重'; el.mLbl2.innerText = '手元引手荷重 (HAUL)'; el.mLbl3.innerText = '斜面牽引張力';
+
+      const rad = state.slopeDeg * (Math.PI / 180);
+      let slopeTensionKn = (state.slopeDeg === 90) ? state.mainLoadKn : state.mainLoadKn * (Math.sin(rad) + state.friction * Math.cos(rad));
+      let tma = 1, ama = 1;
+      const E = state.efficiency;
+      switch (state.sys) {
+        case '1:1-direct': tma = 1; ama = 1.0; break;
+        case '1:1-redirect': tma = 1; ama = E; break;
+        case '2:1': tma = 2; ama = 1 + E; break;
+        case '3:1': tma = 3; ama = 1 + E + (E * E); break;
+        case '5:1': tma = 5; ama = 1 + E + (E * E) + (E * E * E) + (E * E * E * E); break;
+      }
+      const haulKn = slopeTensionKn / ama;
+      const haulKgf = haulKn * 101.97;
+      let anchorKn = (state.sys === '1:1-redirect') ? slopeTensionKn + haulKn : (state.sys === '2:1' ? haulKn : slopeTensionKn);
+      const haulers = Math.max(1, Math.ceil(haulKgf / 22));
+
+      const fAnc = fmtVal(anchorKn, 2); el.mVal1.innerText = fAnc.main; el.mSub1.innerText = fAnc.sub;
+      const fHaul = fmtVal(haulKn, 2); el.mVal2.innerText = fHaul.main; el.mSub2.innerText = fHaul.sub;
+      const fTension = fmtVal(slopeTensionKn, 2); el.mVal3.innerText = fTension.main; el.mSub3.innerText = fTension.sub;
+
+      const fLoad = fmtVal(state.mainLoadKn, 1);
+      el.dispMainLoad.innerText = `${fLoad.main} ${fLoad.sub}`;
+      el.dispMainSlope.innerText = `${state.slopeDeg}°`;
+      el.dispMainTma.innerText = `${tma} : 1`;
+      el.dispMainAma.innerText = `${ama.toFixed(2)} : 1`;
+      el.dispMainHaulers.innerText = `約 ${haulers} 名`;
+
+      let safety = 'safe';
+      if (anchorKn >= 2.5 || haulKn >= 1.2) safety = 'danger';
+      else if (anchorKn >= 1.8 || haulKn >= 0.8) safety = 'warn';
+      setSafety(safety, null, haulKn >= 1.2 ? 2 : 1);
+
+      drawSlopeCanvas(state.slopeDeg, state.sys);
+    }
+
+    function drawSlopeCanvas(deg, sys) {
+      const topX = 120, topY = 45, rampLen = 220, rad = deg * (Math.PI / 180);
+      const bottomX = topX + rampLen * Math.cos(rad), bottomY = topY + rampLen * Math.sin(rad);
+      const litterDist = rampLen * 0.52;
+      const litterX = topX + litterDist * Math.cos(rad), litterY = topY + litterDist * Math.sin(rad);
+
+      let poly = `M ${topX} ${topY} L ${bottomX} ${bottomY} L 395 235 L 5 235 Z`;
+      if (deg === 90) poly = `M ${topX} ${topY} L ${topX} 235 L 5 235 Z`;
+      if (deg === 0) poly = `M ${topX} ${topY} L 395 ${topY} L 395 235 L 5 235 Z`;
+
+      let html = `<path d="${poly}" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.8"/>`;
+      if (deg > 0) {
+        const arcR = 28, arcX = topX + arcR * Math.cos(rad), arcY = topY + arcR * Math.sin(rad);
+        html += `<line x1="${topX}" y1="${topY}" x2="${topX + 45}" y2="${topY}" stroke="#94a3b8" stroke-dasharray="2,2" stroke-width="1.2"/>`;
+        html += `<path d="M ${topX + 22} ${topY} A 22 22 0 0 1 ${arcX} ${arcY}" fill="none" stroke="#ea580c" stroke-width="1.8"/>`;
+        html += `<text x="${topX + 32}" y="${topY + 14}" fill="#ea580c" font-size="10" font-weight="900">${deg}°</text>`;
+      }
+      html += `<line x1="${topX}" y1="${topY}" x2="${litterX}" y2="${litterY}" stroke="#0284c7" stroke-width="3.5" stroke-linecap="round"/>`;
+      html += `<circle cx="${topX}" cy="${topY}" r="9" fill="#fff" stroke="#0f172a" stroke-width="2.5"/>`;
+
+      if (sys === '1:1-redirect') {
+        const hX = topX - 50, hY = topY + 25;
+        html += `<line x1="${topX}" y1="${topY}" x2="${hX}" y2="${hY}" stroke="#ea580c" stroke-width="3" stroke-linecap="round"/>`;
+        html += `<circle cx="${hX}" cy="${hY}" r="3" fill="#ea580c"/>`;
+        html += `<text x="${hX - 5}" y="${hY + 14}" fill="#ea580c" font-size="9" font-weight="900">HAUL (0°折返し)</text>`;
+      } else {
+        const hX = topX - 55, hY = topY - 12;
+        html += `<line x1="${topX}" y1="${topY}" x2="${hX}" y2="${hY}" stroke="#ea580c" stroke-width="3" stroke-linecap="round"/>`;
+        html += `<circle cx="${hX}" cy="${hY}" r="3" fill="#ea580c"/>`;
+        html += `<text x="${hX - 5}" y="${hY - 4}" fill="#ea580c" font-size="9" font-weight="900">HAUL (手元)</text>`;
+      }
+      const rot = deg - 90;
+      html += `<g transform="translate(${litterX}, ${litterY}) rotate(${rot})">
+        <rect x="-12" y="-22" width="24" height="44" rx="4" fill="#ffffff" stroke="#0f172a" stroke-width="2"/>
+        <line x1="-10" y1="-8" x2="10" y2="-8" stroke="#0f172a" stroke-width="1.2"/>
+        <line x1="-10" y1="8" x2="10" y2="8" stroke="#0f172a" stroke-width="1.2"/>
+        <text x="0" y="2" fill="#ea580c" font-size="7" font-weight="900" text-anchor="middle">担架</text>
+      </g>`;
+      el.canvas.innerHTML = html;
+    }
+
+    // ─── 2. 方向転換（自動ズーム＆オートフレーミング） ───
+    function renderVector() {
+      el.metricsHeaderTitle.innerText = '方向転換プーリー 偏向合力サマリー';
+      el.mLbl1.innerText = 'プーリー支点合力 (R)'; el.mLbl2.innerText = '通過索張力 (T)'; el.mLbl3.innerText = '合力負担比率';
+
+      const theta = state.vecAngleDeg;
+      const radHalf = (theta / 2) * (Math.PI / 180);
+      const ratio = 2 * Math.cos(radHalf);
+      const resultantKn = state.vecTensionKn * ratio;
+
+      const fRes = fmtVal(resultantKn, 2); el.mVal1.innerText = fRes.main; el.mSub1.innerText = fRes.sub;
+      const fT = fmtVal(state.vecTensionKn, 1); el.mVal2.innerText = fT.main; el.mSub2.innerText = fT.sub;
+      el.mVal3.innerText = `${Math.round(ratio * 100)} %`;
+      el.mSub3.innerText = ratio > 1.41 ? '過大荷重リスク' : (ratio > 1.0 ? '引張増大' : '低減域');
+
+      el.dispVecTension.innerText = `${fT.main} ${fT.sub}`;
+      el.dispVecAngle.innerText = `${theta}° (合力比率 ${Math.round(ratio * 100)}%)`;
+
+      let safety = 'safe';
+      if (ratio > 1.41) safety = 'danger';
+      else if (ratio > 1.0) safety = 'warn';
+      setSafety(safety, ratio > 1.41 ? '危険 (合力過大)' : (ratio > 1.0 ? '注意 (100%超過)' : '通常 (安全域)'), 1);
+
+      drawEfectoPoleaAutoFraming(theta, ratio, resultantKn);
+    }
+
+    function drawEfectoPoleaAutoFraming(theta, ratio, rKn) {
+      // 幾何座標計算
+      const ancX = 65, ancY = 130, R_arm = 140;
+      const phi = (90 - theta) * (Math.PI / 180);
+      const px = ancX + R_arm * Math.cos(phi);
+      const py = ancY - R_arm * Math.sin(phi);
+      const loadY = py + 75;
+
+      const v1x = (ancX - px) / R_arm;
+      const v1y = (ancY - py) / R_arm;
+      const rx = -v1x;
+      const ry = -(v1y + 1);
+      const rMag = Math.sqrt(rx * rx + ry * ry) || 1;
+      const arrowLen = Math.min(85, Math.max(18, ratio * 38));
+      const endX = px + (rx / rMag) * arrowLen;
+      const endY = py + (ry / rMag) * arrowLen;
+
+      // オートフレーミング: すべての要素のバウンディングボックスを動的計算
+      const ptsX = [ancX - 35, px + 25, endX + (rx >= 0 ? 80 : -80), px];
+      const ptsY = [ancY - 20, ancY + 20, py - 25, loadY + 30, endY - 20, endY + 20];
+      const minX = Math.min(...ptsX);
+      const maxX = Math.max(...ptsX);
+      const minY = Math.min(...ptsY);
+      const maxY = Math.max(...ptsY);
+
+      const spanW = maxX - minX;
+      const spanH = maxY - minY;
+      const aspect = 400 / 240;
+      let finalW = spanW;
+      let finalH = spanH;
+      if (finalW / finalH > aspect) {
+        finalH = finalW / aspect;
+      } else {
+        finalW = finalH * aspect;
+      }
+      const midX = (minX + maxX) / 2;
+      const midY = (minY + maxY) / 2;
+      const boxX = midX - finalW / 2;
+      const boxY = midY - finalH / 2;
+
+      el.canvas.setAttribute('viewBox', `${boxX} ${boxY} ${finalW} ${finalH}`);
+
+      let html = `<defs>
+        <marker id="arrRed" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#dc2626"/></marker>
+        <marker id="arrBlue" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#0284c7"/></marker>
+      </defs>`;
+
+      // ロープライン
+      html += `<line x1="${ancX}" y1="${ancY}" x2="${px}" y2="${py}" stroke="#0284c7" stroke-width="3.5" marker-end="url(#arrBlue)"/>`;
+      html += `<line x1="${px}" y1="${py}" x2="${px}" y2="${loadY}" stroke="#ea580c" stroke-width="3" stroke-linecap="round"/>`;
+
+      // 吊り荷
+      html += `<polygon points="${px},${loadY} ${px - 9},${loadY + 13} ${px + 9},${loadY + 13}" fill="#dc2626"/>`;
+      html += `<text x="${px}" y="${loadY + 23}" fill="#dc2626" font-size="9" font-weight="900" text-anchor="middle">荷 (T)</text>`;
+
+      // アンカー
+      html += `<circle cx="${ancX}" cy="${ancY}" r="16" fill="#f1f5f9" stroke="#0f172a" stroke-width="2.5"/>`;
+      html += `<text x="${ancX}" y="${ancY + 3.5}" fill="#0f172a" font-size="8.5" font-weight="900" text-anchor="middle">Anchor</text>`;
+
+      // プーリー
+      html += `<g transform="translate(${px}, ${py})">
+        <rect x="-7" y="-12" width="14" height="24" rx="7" fill="#ffffff" stroke="#475569" stroke-width="2"/>
+        <circle cx="0" cy="0" r="4.5" fill="#f59e0b" stroke="#0f172a" stroke-width="1.2"/>
+      </g>`;
+
+      // 合力ベクトル矢印
+      if (ratio > 0.05) {
+        html += `<line x1="${px}" y1="${py}" x2="${endX}" y2="${endY}" stroke="#dc2626" stroke-width="3.5" marker-end="url(#arrRed)"/>`;
+        html += `<text x="${endX + (rx >= 0 ? 8 : -8)}" y="${endY + (ry >= 0 ? 10 : -6)}" fill="#dc2626" font-size="11" font-weight="900" text-anchor="${rx >= 0 ? 'start' : 'end'}">
+          ${Math.round(ratio * 100)}% (${fmtVal(rKn, 1).main})
+        </text>`;
+      }
+      html += `<text x="${ancX + 26}" y="${ancY - 12}" fill="#0284c7" font-size="11.5" font-weight="900">θ = ${theta}°</text>`;
+
+      el.canvas.innerHTML = html;
+    }
+
+    // ─── 3. ハイライン ───
+    function renderHighline() {
+      el.canvas.setAttribute('viewBox', '0 0 400 240');
+      el.metricsHeaderTitle.innerText = '傾斜ハイライン 支点A/B反力・主索張力解析';
+      el.mLbl1.innerText = '支点A 荷重 (高所側)'; el.mLbl2.innerText = '支点B 荷重 (低所側)'; el.mLbl3.innerText = '中央主索張力 (T)';
+
+      const L = state.hlSpanM, S = state.hlSagM, theta = state.hlSlopeDeg;
+      const thetaRad = theta * (Math.PI / 180), W = state.hlLoadKn;
+      const sagRatio = ((S / L) * 100).toFixed(1);
+
+      let alphaDeg = 0, betaDeg = 0, includedDeg = 0;
+      if (theta === 90) {
+        alphaDeg = 90.0; betaDeg = 0.0; includedDeg = 90.0;
+      } else {
+        const H = L * Math.tan(thetaRad);
+        const dyA = (H / 2) + S;
+        alphaDeg = (Math.atan2(dyA, L / 2) * 180 / Math.PI).toFixed(1);
+        const dyB = Math.max(0.01, (H / 2) + S);
+        betaDeg = (Math.atan2(dyB, L / 2) * 180 / Math.PI).toFixed(1);
+        includedDeg = Math.max(1, 180 - parseFloat(alphaDeg) - parseFloat(betaDeg)).toFixed(1);
+      }
+
+      let Th = 0, VA = 0, VB = 0;
+      if (theta === 90) {
+        Th = 0; VA = W; VB = 0;
+      } else {
+        Th = (W * Math.cos(thetaRad) * L) / (4 * S);
+        VA = (W / 2) + (Th * Math.tan(thetaRad));
+        VB = Math.max(0, (W / 2) - (Th * Math.tan(thetaRad)));
+      }
+
+      const tensionA = Math.sqrt(Th * Th + VA * VA);
+      const tensionB = Math.sqrt(Th * Th + VB * VB);
+      const centerTension = Math.max(tensionA, tensionB);
+
+      const fA = fmtVal(tensionA, 2); el.mVal1.innerText = fA.main; el.mSub1.innerText = fA.sub;
+      const fB = fmtVal(tensionB, 2); el.mVal2.innerText = fB.main; el.mSub2.innerText = fB.sub;
+      const fC = fmtVal(centerTension, 2); el.mVal3.innerText = fC.main; el.mSub3.innerText = fC.sub;
+
+      const fLoad = fmtVal(W, 1);
+      el.dispHlLoad.innerText = `${fLoad.main} ${fLoad.sub}`;
+      el.dispHlSpan.innerText = `${L} m`;
+      el.dispHlSag.innerText = `${S} m (サグ率 ${sagRatio}%)`;
+      el.dispHlSlope.innerText = theta === 0 ? '0° (完全水平)' : `${theta}°`;
+      el.dispHlAngleA.innerText = `${alphaDeg}°`;
+      el.dispHlAngleB.innerText = `${betaDeg}°`;
+      el.dispHlIncludedAngle.innerText = `${includedDeg}°`;
+
+      let safety = 'safe';
+      if (sagRatio < 8.0 || tensionA > 4.0) safety = 'danger';
+      else if (sagRatio < 10.0 || tensionA > 2.5) safety = 'warn';
+      setSafety(safety, sagRatio < 8.0 ? '危険 (過大張力・サグ不足)' : (tensionA > 2.5 ? '注意 (高負荷)' : '通常 (安全域)'), 1);
+
+      drawHighlineCanvas(theta, L, S, includedDeg);
+    }
+
+    function drawHighlineCanvas(theta, L, S, incDeg) {
+      const xA = 45, xB = 355, yBase = 60, dropMax = 125, drop = (theta / 90) * dropMax;
+      const yA = yBase, yB = yBase + drop;
+      const midX = (xA + xB) / 2, midStraightY = (yA + yB) / 2;
+      const sagPx = Math.min(65, Math.max(15, (S / L) * 240));
+      const midY = midStraightY + sagPx;
+
+      let html = `<line x1="${xA}" y1="${yA}" x2="${xA}" y2="230" stroke="#94a3b8" stroke-width="2.5"/>
+        <line x1="${xB}" y1="${yB}" x2="${xB}" y2="230" stroke="#94a3b8" stroke-width="2.5"/>
+        <line x1="${xA}" y1="${yA}" x2="${xB}" y2="${yB}" stroke="#cbd5e1" stroke-dasharray="2,2" stroke-width="1.2"/>
+        <path d="M ${xA} ${yA} Q ${midX} ${midY + 12} ${xB} ${yB}" fill="none" stroke="#0284c7" stroke-width="3.5"/>
+        <circle cx="${xA}" cy="${yA}" r="8" fill="#fff" stroke="#0f172a" stroke-width="2.5"/>
+        <text x="${xA}" y="${yA - 10}" fill="#0f172a" font-size="9" font-weight="900" text-anchor="middle">支点 A</text>
+        <circle cx="${xB}" cy="${yB}" r="8" fill="#fff" stroke="#0f172a" stroke-width="2.5"/>
+        <text x="${xB}" y="${yB - 10}" fill="#0f172a" font-size="9" font-weight="900" text-anchor="middle">支点 B</text>
+        <circle cx="${midX}" cy="${midY}" r="6" fill="#fff" stroke="#0f172a" stroke-width="2"/>
+        <line x1="${midX}" y1="${midY}" x2="${midX}" y2="${midY + 20}" stroke="#0f172a" stroke-width="1.5"/>
+        <rect x="${midX - 16}" y="${midY + 20}" width="32" height="18" rx="3" fill="#ffffff" stroke="#ea580c" stroke-width="2"/>
+        <text x="${midX}" y="${midY + 32}" fill="#ea580c" font-size="8" font-weight="900" text-anchor="middle">LOAD</text>
+        <line x1="${midX}" y1="${midStraightY}" x2="${midX}" y2="${midY}" stroke="#dc2626" stroke-width="1.5"/>
+        <text x="${midX + 8}" y="${midStraightY + sagPx/2 + 3}" fill="#dc2626" font-size="8.5" font-weight="900">S = ${S}m</text>
+        <text x="${midX}" y="${midY - 6}" fill="#ea580c" font-size="9" font-weight="900" text-anchor="middle">挟み角 ${incDeg}°</text>`;
+      el.canvas.innerHTML = html;
+    }
+
+    // ─── 4. Yハング（2点・3点・4点分散切替 ＆ リアルタイム荷重タグ） ───
+    function renderYHang() {
+      el.canvas.setAttribute('viewBox', '0 0 400 240');
+      el.metricsHeaderTitle.innerText = `${state.yPoints}点均等分散アンカー 力学サマリー`;
+      el.mLbl1.innerText = '最外脚 支点荷重'; el.mLbl2.innerText = '吊り下げ総荷重 (W)'; el.mLbl3.innerText = '支点最大負担率';
+
+      const N = state.yPoints;
+      const theta = state.yAngleDeg;
+      const thetaRad = theta * (Math.PI / 180);
+      const halfRad = thetaRad / 2;
+
+      // 各脚の角度と荷重計算
+      // 均等分散マスターポイントにおける各脚張力 Fi: Σ (Fi * cos(φi)) = W
+      let legForces = [];
+      let legAngles = [];
+      if (N === 2) {
+        legAngles = [-halfRad, halfRad];
+        const ratio = 1 / (2 * Math.cos(halfRad));
+        legForces = [state.yLoadKn * ratio, state.yLoadKn * ratio];
+      } else if (N === 3) {
+        legAngles = [-halfRad, 0, halfRad];
+        // 垂直脚(0°)と両側脚(±halfRad)の均等伸び近似
+        const cosSum = 1 + 2 * Math.cos(halfRad) * Math.cos(halfRad);
+        const fCenter = state.yLoadKn / cosSum;
+        const fSide = fCenter * Math.cos(halfRad);
+        legForces = [fSide, fCenter, fSide];
+      } else if (N === 4) {
+        const phiInner = halfRad / 3;
+        legAngles = [-halfRad, -phiInner, phiInner, halfRad];
+        const cosSum = 2 * Math.cos(halfRad) * Math.cos(halfRad) + 2 * Math.cos(phiInner) * Math.cos(phiInner);
+        const fRef = state.yLoadKn / cosSum;
+        const fSide = fRef * Math.cos(halfRad);
+        const fInner = fRef * Math.cos(phiInner);
+        legForces = [fSide, fInner, fInner, fSide];
+      }
+
+      const maxLegKn = Math.max(...legForces);
+      const maxRatio = maxLegKn / state.yLoadKn;
+
+      const fMax = fmtVal(maxLegKn, 2); el.mVal1.innerText = fMax.main; el.mSub1.innerText = fMax.sub;
+      const fW = fmtVal(state.yLoadKn, 1); el.mVal2.innerText = fW.main; el.mSub2.innerText = fW.sub;
+      el.mVal3.innerText = `${Math.round(maxRatio * 100)} %`;
+      el.mSub3.innerText = maxRatio > 1.0 ? '過大荷重' : (maxRatio > 0.7 ? '注意域' : '安全分散');
+
+      el.dispYLoad.innerText = `${fW.main} ${fW.sub}`;
+      el.dispYAngle.innerText = `${theta}° (支点数: ${N}点)`;
+
+      let safety = 'safe';
+      if (maxRatio >= 1.0) safety = 'danger';
+      else if (maxRatio >= 0.7) safety = 'warn';
+      setSafety(safety, maxRatio >= 1.0 ? '危険 (各脚100%超過)' : (maxRatio >= 0.7 ? '注意 (高負荷)' : '通常 (安全分散)'), 1);
+
+      drawMultiPointYHang(N, theta, legAngles, legForces);
+    }
+
+    function drawMultiPointYHang(N, theta, angles, forces) {
+      const cx = 200, cy = 150, legLen = 85;
+      let html = '';
+
+      const labels = ['A', 'B', 'C', 'D'];
+      const anchorPos = [];
+
+      angles.forEach((ang, idx) => {
+        const ax = cx + legLen * Math.sin(ang);
+        const ay = cy - legLen * Math.cos(ang);
+        anchorPos.push({ x: ax, y: ay, force: forces[idx], lbl: (N === 2) ? (idx === 0 ? 'A' : 'B') : labels[idx] });
+      });
+
+      // 各脚ロープ
+      anchorPos.forEach(pt => {
+        html += `<line x1="${pt.x}" y1="${pt.y}" x2="${cx}" y2="${cy}" stroke="#0284c7" stroke-width="3" stroke-linecap="round"/>`;
+      });
+
+      // アンカー点と直下荷重タグ
+      anchorPos.forEach(pt => {
+        const fRatio = Math.round((pt.force / state.yLoadKn) * 100);
+        html += `<circle cx="${pt.x}" cy="${pt.y}" r="6.5" fill="#fff" stroke="#0f172a" stroke-width="2.5"/>`;
+        html += `<text x="${pt.x}" y="${pt.y - 10}" fill="#0f172a" font-size="9" font-weight="900" text-anchor="middle">支点 ${pt.lbl}</text>`;
+
+        // 直下荷重バッジ
+        html += `<g transform="translate(${pt.x}, ${pt.y + 14})">
+          <rect x="-24" y="-7" width="48" height="14" rx="3" fill="#eff6ff" stroke="#3b82f6" stroke-width="1"/>
+          <text x="0" y="3.5" fill="#1d4ed8" font-size="7.5" font-weight="900" text-anchor="middle">${fmtVal(pt.force, 1).main}</text>
+        </g>`;
+      });
+
+      // マスターポイント
+      html += `<circle cx="${cx}" cy="${cy}" r="8.5" fill="#fff" stroke="#ea580c" stroke-width="2.5"/>`;
+      html += `<line x1="${cx}" y1="${cy}" x2="${cx}" y2="${cy + 45}" stroke="#ea580c" stroke-width="3.5" stroke-linecap="round"/>`;
+      html += `<circle cx="${cx}" cy="${cy + 45}" r="4" fill="#ea580c"/>`;
+
+      // 角度弧
+      const arcR = 28;
+      const halfRad = (theta / 2) * (Math.PI / 180);
+      const arcX1 = cx - arcR * Math.sin(halfRad);
+      const arcY1 = cy - arcR * Math.cos(halfRad);
+      const arcX2 = cx + arcR * Math.sin(halfRad);
+      const arcY2 = cy - arcR * Math.cos(halfRad);
+      html += `<path d="M ${arcX1} ${arcY1} A ${arcR} ${arcR} 0 0 1 ${arcX2} ${arcY2}" fill="none" stroke="#ea580c" stroke-width="1.8"/>`;
+      html += `<text x="${cx}" y="${cy - 34}" fill="#ea580c" font-size="11" font-weight="900" text-anchor="middle">θ = ${theta}°</text>`;
+
+      el.canvas.innerHTML = html;
+    }
+
+    // ─── 5. 衝撃荷重（FF比較・2列表示） ───
+    function renderImpact() {
+      el.canvas.setAttribute('viewBox', '0 0 400 240');
+      el.metricsHeaderTitle.innerText = '墜落衝撃荷重・落下係数 (Fall Factor) 解析';
+      el.mLbl1.innerText = 'ピーク衝撃荷重 (F_max)'; el.mLbl2.innerText = '落下係数 (FF)'; el.mLbl3.innerText = 'アンカー最大負担力';
+
+      const m = state.impMassKg, h = state.impFallDistM, L = state.impRopeLenM;
+      const g = 9.80665, W_kn = (m * g) / 1000;
+      const ff = h / L;
+      const k = state.impModulusKn / L;
+
+      let theoreticalImpactKn = W_kn * (1 + Math.sqrt(1 + (2 * k * h) / W_kn));
+      let actualImpactKn = theoreticalImpactKn;
+      if (state.impAbsorber === 'en355') actualImpactKn = Math.min(6.0, theoreticalImpactKn);
+      else if (state.impAbsorber === 'asap') actualImpactKn = Math.min(4.8, theoreticalImpactKn);
+
+      const elongM = actualImpactKn / k;
+      const gForce = actualImpactKn / W_kn;
+      const anchorImpactKn = actualImpactKn;
+
+      const fPeak = fmtVal(actualImpactKn, 2); el.mVal1.innerText = fPeak.main; el.mSub1.innerText = fPeak.sub;
+      el.mVal2.innerText = ff.toFixed(2);
+      el.mSub2.innerText = ff >= 2.0 ? '破壊的墜落' : (ff >= 1.0 ? '高衝撃墜落' : '安全許容域');
+      const fAnc = fmtVal(anchorImpactKn, 2); el.mVal3.innerText = fAnc.main; el.mSub3.innerText = fAnc.sub;
+
+      el.dispImpMass.innerText = `${m} kg (${W_kn.toFixed(2)} kN)`;
+      el.dispImpFallDist.innerText = `${h.toFixed(1)} m`;
+      el.dispImpRopeLen.innerText = `${L.toFixed(1)} m`;
+      el.dispImpFF.innerText = ff.toFixed(2);
+      el.dispImpElong.innerText = `約 ${elongM.toFixed(2)} m`;
+      el.dispImpG.innerText = `約 ${gForce.toFixed(1)} G`;
+
+      let safety = 'safe';
+      if (actualImpactKn >= 8.0 || ff >= 1.5) safety = 'danger';
+      else if (actualImpactKn >= 6.0 || ff >= 0.8) safety = 'warn';
+      setSafety(safety, actualImpactKn >= 8.0 ? '危険 (骨折・破断リスク)' : (actualImpactKn >= 6.0 ? '注意 (人体傷害限界)' : '通常 (許容域)'), 1);
+
+      drawImpactTwoColumnCanvas(h, L, elongM, actualImpactKn, ff, gForce);
+    }
+
+    function drawImpactTwoColumnCanvas(h, L, elongM, fKn, ff, gVal) {
+      let html = `<defs>
+        <marker id="arrImpRed" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#dc2626"/></marker>
+      </defs>`;
+
+      // 中央境界線
+      html += `<line x1="200" y1="15" x2="200" y2="230" stroke="#e2e8f0" stroke-dasharray="4,4" stroke-width="1.5"/>`;
+
+      // ─── 左側: 墜落前 (START) ───
+      const c1X = 100, ancY = 55;
+      const scale = 22; // 1mあたりのピクセル
+      const ropePx = Math.max(25, L * scale);
+      const fallPx = h * scale;
+
+      // 墜落前救助者の位置（足元アンカーFF=2.0ならアンカーより上に立つ）
+      const climberStartY = ancY + ropePx - fallPx;
+
+      html += `<rect x="${c1X - 60}" y="10" width="120" height="20" rx="4" fill="#f1f5f9"/>
+               <text x="${c1X}" y="24" fill="#475569" font-size="10" font-weight="900" text-anchor="middle">① 墜落前 (START)</text>`;
+
+      // アンカー
+      html += `<circle cx="${c1X}" cy="${ancY}" r="6" fill="#fff" stroke="#0f172a" stroke-width="2.5"/>
+               <text x="${c1X + 10}" y="${ancY + 4}" fill="#0f172a" font-size="8.5" font-weight="900">支点</text>`;
+
+      // たわんだロープ
+      html += `<path d="M ${c1X} ${ancY} Q ${c1X - 18} ${(ancY + climberStartY)/2 + 10} ${c1X} ${climberStartY}" fill="none" stroke="#0284c7" stroke-width="2.5" stroke-dasharray="3,3"/>`;
+
+      // 落下軌跡矢印
+      html += `<line x1="${c1X + 28}" y1="${climberStartY}" x2="${c1X + 28}" y2="${climberStartY + fallPx}" stroke="#ea580c" stroke-width="2"/>
+               <text x="${c1X + 34}" y="${climberStartY + fallPx/2 + 3}" fill="#ea580c" font-size="8.5" font-weight="900">落下 h=${h.toFixed(1)}m</text>`;
+
+      // 人形（前）
+      html += `<g transform="translate(${c1X}, ${climberStartY})">
+        <circle cx="0" cy="-14" r="5" fill="#f8fafc" stroke="#64748b" stroke-width="1.5"/>
+        <line x1="0" y1="-9" x2="0" y2="4" stroke="#64748b" stroke-width="2"/>
+        <line x1="-8" y1="-4" x2="8" y2="-4" stroke="#64748b" stroke-width="1.5"/>
+        <line x1="0" y1="4" x2="-6" y2="15" stroke="#64748b" stroke-width="1.5"/>
+        <line x1="0" y1="4" x2="6" y2="15" stroke="#64748b" stroke-width="1.5"/>
+      </g>`;
+
+      // ─── 右側: 衝撃瞬間 (IMPACT) ───
+      const c2X = 300;
+      const elongPx = Math.min(35, elongM * scale);
+      const impactStopY = ancY + ropePx + elongPx;
+
+      html += `<rect x="${c2X - 60}" y="10" width="120" height="20" rx="4" fill="#fee2e2"/>
+               <text x="${c2X}" y="24" fill="#dc2626" font-size="10" font-weight="900" text-anchor="middle">② 衝撃瞬間 (IMPACT)</text>`;
+
+      // アンカー
+      html += `<circle cx="${c2X}" cy="${ancY}" r="6" fill="#fff" stroke="#0f172a" stroke-width="2.5"/>
+               <text x="${c2X + 10}" y="${ancY + 4}" fill="#0f172a" font-size="8.5" font-weight="900">支点</text>`;
+
+      // ピンと伸びきったロープ
+      html += `<line x1="${c2X}" y1="${ancY}" x2="${c2X}" y2="${impactStopY}" stroke="#0284c7" stroke-width="3.5" stroke-linecap="round"/>`;
+
+      // ショックアブソーバー展開
+      if (state.impAbsorber !== 'none') {
+        html += `<rect x="${c2X - 5}" y="${ancY + 8}" width="10" height="15" rx="2" fill="#f59e0b" stroke="#0f172a" stroke-width="1.2"/>`;
+      }
+
+      // 人形（衝撃時）
+      html += `<g transform="translate(${c2X}, ${impactStopY})">
+        <circle cx="0" cy="8" r="6" fill="#f8fafc" stroke="#dc2626" stroke-width="2"/>
+        <line x1="0" y1="14" x2="0" y2="28" stroke="#dc2626" stroke-width="2.5"/>
+        <line x1="-12" y1="20" x2="12" y2="16" stroke="#dc2626" stroke-width="2"/>
+        <line x1="0" y1="28" x2="-8" y2="42" stroke="#dc2626" stroke-width="2"/>
+        <line x1="0" y1="28" x2="8" y2="42" stroke="#dc2626" stroke-width="2"/>
+      </g>`;
+
+      // 衝撃荷重矢印
+      const arrowLen = Math.min(48, Math.max(16, fKn * 3.8));
+      html += `<line x1="${c2X + 24}" y1="${impactStopY + 5}" x2="${c2X + 24}" y2="${impactStopY + 5 + arrowLen}" stroke="#dc2626" stroke-width="3.5" marker-end="url(#arrImpRed)"/>
+               <text x="${c2X + 30}" y="${impactStopY + 12 + arrowLen/2}" fill="#dc2626" font-size="10.5" font-weight="900">
+                 ${fmtVal(fKn, 1).main}<br><tspan fill="#64748b" font-size="8">(${gVal.toFixed(1)}G)</tspan>
+               </text>`;
+
+      html += `<text x="${c2X - 8}" y="${impactStopY - 4}" fill="#0284c7" font-size="8" font-weight="800" text-anchor="end">伸び +${elongM.toFixed(2)}m</text>`;
+
+      el.canvas.innerHTML = html;
+    }
+
+    // ─── 初期起動 ───
+    initEvents();
+    render();
+  </script>
+</body>
+</html>
